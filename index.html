@@ -3,65 +3,78 @@
 <head>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <script src="https://unpkg.com/html5-qrcode"></script>
+
   <style>
-    body { font-family: Arial; text-align:center; margin-top:20px; }
-    #reader { width: 300px; margin:auto; }
+    body {
+      font-family: Arial;
+      text-align: center;
+      margin-top: 20px;
+    }
+    #reader {
+      width: 300px;
+      margin: auto;
+    }
   </style>
 </head>
+
 <body>
 
 <h3>QR Scanner</h3>
 <div id="reader"></div>
 
 <script>
-const API_URL = "https://script.google.com/macros/s/AKfycbw4ZtbLqpovkXsFPH5pSLI3Bx00UusqfXA4TXV5F3Jnu5AxHxf9f1zUYZ3BGm2JPMfO/exec";
+
+const API_URL = "PASTE_YOUR_APPS_SCRIPT_URL_HERE";
 
 function sendToSheet(qr) {
-  console.log("Sending:", qr);
+  console.log("Sending QR:", qr);
 
   fetch(API_URL + "?qr=" + encodeURIComponent(qr))
-    .then(() => console.log("Saved:", qr))
-    .catch(err => console.error("Error:", err));
+    .then(res => res.text())
+    .then(data => {
+      console.log("Server response:", data);
+    })
+    .catch(err => {
+      console.error("Error sending to sheet:", err);
+    });
 }
 
 Html5Qrcode.getCameras().then(devices => {
 
-  let backCameraId = null;
+  let backCameraId = devices[0].id;
 
+  // try to find back camera
   devices.forEach(device => {
+    const label = device.label.toLowerCase();
     if (
-      device.label.toLowerCase().includes("back") ||
-      device.label.toLowerCase().includes("rear") ||
-      device.label.toLowerCase().includes("environment")
+      label.includes("back") ||
+      label.includes("rear") ||
+      label.includes("environment")
     ) {
       backCameraId = device.id;
     }
   });
 
-  const cameraId = backCameraId || devices[0].id;
-
   const scanner = new Html5Qrcode("reader");
-  
-const track = await scanner.getRunningTrack();
-const capabilities = track.getCapabilities?.();
 
-if (capabilities?.focusMode) {
-  track.applyConstraints({
-    advanced: [{ focusMode: "continuous" }]
-  });
-}
-  
-scanner.start(
-  { facingMode: "environment" },
-  {
-    fps: 10,
-    qrbox: { width: 250, height: 250 }
-  },
-  (decodedText) => {
-    sendToSheet(decodedText);
-  }
-);
+  scanner.start(
+    backCameraId,
+    {
+      fps: 10,
+      qrbox: 250
+    },
+    (decodedText) => {
+      sendToSheet(decodedText);
+    },
+    (errorMessage) => {
+      // ignore scan errors
+    }
+  );
+
+}).catch(err => {
+  console.error("Camera error:", err);
 });
+
 </script>
 
 </body>
