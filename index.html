@@ -52,27 +52,22 @@ let lastQR = null;
 // send to sheet
 function sendToSheet(qr) {
 
+  console.log("➡ SENDING REQUEST:", qr);
+
   fetch(API_URL + "?qr=" + encodeURIComponent(qr))
     .then(res => res.text())
     .then(result => {
-      result = result.trim();
-      console.log("SERVER RESPONSE:", result);
 
-      if (result === "DUPLICATE") {
-        setStatus("⚠ QR detected - already exists");
-      } 
-      else if (result === "SAVED") {
-        setStatus("✅ QR detected - saved to spreadsheet");
-      }
-      else {
-        setStatus("❌ Server response: " + result);
-      }
+      console.log("⬅ SERVER RESPONSE:", result);
+
+      setStatus(result === "DUPLICATE"
+        ? "⚠ Already exists"
+        : "✅ Saved / Processed"
+      );
 
     })
     .catch(err => {
-      console.error(err);
-      setStatus("❌ Connection error");
-
+      console.error("FETCH ERROR:", err);
     });
 
 }
