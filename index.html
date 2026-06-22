@@ -1,3 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://unpkg.com/html5-qrcode"></script>
+  <style>
+    body { font-family: Arial; text-align:center; margin-top:20px; }
+    #reader { width: 300px; margin:auto; }
+  </style>
+</head>
+<body>
+
+<h3>QR Scanner</h3>
+<div id="reader"></div>
+
+<script>
 const API_URL = "https://script.google.com/macros/s/AKfycbw4ZtbLqpovkXsFPH5pSLI3Bx00UusqfXA4TXV5F3Jnu5AxHxf9f1zUYZ3BGm2JPMfO/exec";
 
 function sendToSheet(qr) {
@@ -41,3 +57,7 @@ Html5Qrcode.getCameras().then(devices => {
   );
 
 });
+</script>
+
+</body>
+</html>
