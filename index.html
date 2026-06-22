@@ -22,6 +22,11 @@
     padding: 10px 20px;
     font-size: 16px;
   }
+
+  #status {
+    margin-top: 10px;
+    font-weight: bold;
+  }
 </style>
 </head>
 
@@ -31,7 +36,9 @@
 
 <div id="reader"></div>
 
-<button id="scanBtn">Scan Once</button>
+<button id="saveBtn">Save QR</button>
+
+<div id="status">No QR detected yet</div>
 
 <script>
 
@@ -40,21 +47,24 @@ const API_URL = "https://script.google.com/macros/s/AKfycbw4ZtbLqpovkXsFPH5pSLI3
 const scanner = new Html5Qrcode("reader");
 
 let cameraId = null;
-let scanning = false;
+let lastQR = null;
 
-// send to Google Sheet
+// send to sheet
 function sendToSheet(qr) {
-
-  console.log("Sending to sheet:", qr);
 
   fetch(API_URL + "?qr=" + encodeURIComponent(qr))
     .then(res => res.text())
-    .then(data => console.log("Sheet response:", data))
-    .catch(err => console.error("Fetch error:", err));
+    .then(data => console.log("Saved:", data))
+    .catch(err => console.error("Error:", err));
 
 }
 
-// start camera preview
+// update UI
+function setStatus(msg) {
+  document.getElementById("status").innerText = msg;
+}
+
+// start camera + continuous detection (NO SAVE AUTOMATICALLY)
 function startCamera() {
 
   Html5Qrcode.getCameras().then(devices => {
@@ -80,49 +90,38 @@ function startCamera() {
         fps: 10,
         qrbox: 250
       },
-      () => {}
-    ).then(() => {
-      console.log("Camera started");
-    }).catch(err => {
-      console.error("Camera error:", err);
-      alert(err);
+      (decodedText) => {
+
+        // store latest QR only
+        lastQR = decodedText;
+
+        setStatus("QR detected: " + decodedText + " (Press Save)");
+
+      }
+    ).catch(err => {
+      console.error(err);
+      alert("Camera error: " + err);
     });
 
   });
 
 }
 
-// ONE SCAN ONLY
-function scanOnce() {
+// SAVE ONLY WHEN BUTTON PRESSED
+document.getElementById("saveBtn").addEventListener("click", () => {
 
-  if (scanning) return;
-  scanning = true;
+  if (!lastQR) {
+    alert("No QR detected yet");
+    return;
+  }
 
-  scanner.render(
-    (decodedText) => {
+  sendToSheet(lastQR);
+  setStatus("Saved: " + lastQR);
 
-      console.log("QR detected:", decodedText);
+  lastQR = null; // reset to avoid duplicates
 
-      sendToSheet(decodedText);
+});
 
-      scanner.stop().then(() => {
-        console.log("Scanner stopped");
-        scanning = false;
-      });
-
-    },
-    {
-      fps: 10,
-      qrbox: 250
-    }
-  );
-
-}
-
-// button
-document.getElementById("scanBtn").addEventListener("click", scanOnce);
-
-// init
 startCamera();
 
 </script>
