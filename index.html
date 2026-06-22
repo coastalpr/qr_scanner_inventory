@@ -27,11 +27,29 @@ function onScanSuccess(decodedText) {
 }
 
 Html5Qrcode.getCameras().then(devices => {
+  let backCameraId = null;
+
+  // find back camera
+  devices.forEach(device => {
+    if (
+      device.label.toLowerCase().includes("back") ||
+      device.label.toLowerCase().includes("rear") ||
+      device.label.toLowerCase().includes("environment")
+    ) {
+      backCameraId = device.id;
+    }
+  });
+
+  const cameraId = backCameraId || devices[0].id;
+
   const scanner = new Html5Qrcode("reader");
 
   scanner.start(
-    { facingMode: "environment" }, // 👈 BACK CAMERA
-    { fps: 10, qrbox: 250 },
+    cameraId,
+    {
+      fps: 10,
+      qrbox: 250
+    },
     (decodedText) => {
       fetch(API_URL + "?qr=" + encodeURIComponent(decodedText));
     }
