@@ -2,11 +2,19 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <script src="https://unpkg.com/html5-qrcode"></script>
 
 <style>
-  body { font-family: Arial; text-align:center; margin-top:20px; }
-  #reader { width: 300px; margin:auto; }
+  body {
+    font-family: Arial;
+    text-align: center;
+    margin-top: 20px;
+  }
+  #reader {
+    width: 300px;
+    margin: auto;
+  }
 </style>
 </head>
 
@@ -18,27 +26,29 @@
 <script>
 const API_URL = "https://script.google.com/macros/s/AKfycbw4ZtbLqpovkXsFPH5pSLI3Bx00UusqfXA4TXV5F3Jnu5AxHxf9f1zUYZ3BGm2JPMfO/exec";
 
+const scanner = new Html5Qrcode("reader");
+
 function sendToSheet(qr) {
   fetch(API_URL + "?qr=" + encodeURIComponent(qr))
     .then(() => console.log("Saved:", qr))
-    .catch(err => console.error(err));
+    .catch(err => console.error("Fetch error:", err));
 }
 
 function onScanSuccess(decodedText) {
+  console.log("QR detected:", decodedText);
   sendToSheet(decodedText);
 }
 
-const scanner = new Html5Qrcode("reader");
-
+// Start camera
 Html5Qrcode.getCameras().then(devices => {
   if (!devices || devices.length === 0) {
-    console.error("No cameras found");
+    alert("No camera found");
     return;
   }
 
   let cameraId = devices[0].id;
 
-  // try to find back camera
+  // Try to find back camera
   for (let device of devices) {
     const label = device.label.toLowerCase();
     if (label.includes("back") || label.includes("rear") || label.includes("environment")) {
@@ -51,15 +61,23 @@ Html5Qrcode.getCameras().then(devices => {
     cameraId,
     {
       fps: 10,
-      qrbox: { width: 180, height: 180 },
+      qrbox: { width: 200, height: 200 },
       aspectRatio: 1.0,
       experimentalFeatures: {
         useBarCodeDetectorIfSupported: true
       }
     },
     onScanSuccess
-  ).catch(err => console.error("Start error:", err));
+  ).then(() => {
+    console.log("Camera started");
+  }).catch(err => {
+    console.error("Camera error:", err);
+    alert("Camera failed: " + err);
+  });
 
+}).catch(err => {
+  console.error("getCameras error:", err);
+  alert("Cannot access camera");
 });
 </script>
 
