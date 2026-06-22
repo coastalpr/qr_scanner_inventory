@@ -31,7 +31,7 @@
 
 <div id="reader"></div>
 
-<button onclick="scanOnce()">Scan QR Code</button>
+<button id="scanBtn">Scan Once</button>
 
 <script>
 
@@ -40,76 +40,95 @@ const API_URL = "https://script.google.com/macros/s/AKfycbw4ZtbLqpovkXsFPH5pSLI3
 const scanner = new Html5Qrcode("reader");
 
 let cameraId = null;
-let scanning = false;
+let isRunning = false;
 
-// Send to Google Sheets
+// send to sheet
 function sendToSheet(qr) {
   fetch(API_URL + "?qr=" + encodeURIComponent(qr))
     .then(() => console.log("Saved:", qr))
-    .catch(err => console.error("Error:", err));
+    .catch(err => console.error(err));
 }
 
-// Run scan only when button clicked
-function scanOnce() {
+// start camera ONCE (preview only, no scanning loop)
+function startCamera() {
 
-  if (scanning) return;
-  scanning = true;
+  Html5Qrcode.getCameras().then(devices => {
 
-  scanner.scanFile().catch(() => {
-    console.log("No file scan support, using camera scan instead");
-  });
-
-  scanner.start(
-    cameraId,
-    {
-      fps: 10,
-      qrbox: 250
-    },
-    (decodedText) => {
-
-      console.log("QR:", decodedText);
-
-      sendToSheet(decodedText);
-
-      // STOP immediately → prevents duplicates
-      scanner.stop().then(() => {
-        console.log("Scanner stopped");
-        scanning = false;
-      });
-
+    if (!devices || devices.length === 0) {
+      alert("No camera found");
+      return;
     }
-  ).catch(err => {
-    console.error("Start error:", err);
-    scanning = false;
+
+    cameraId = devices[0].id;
+
+    // prefer back camera
+    for (let d of devices) {
+      const label = d.label.toLowerCase();
+      if (label.includes("back") || label.includes("rear")) {
+        cameraId = d.id;
+        break;
+      }
+    }
+
+    // start camera preview ONLY (no scanning yet)
+    scanner.start(
+      cameraId,
+      {
+        fps: 10,
+        qrbox: 250
+      },
+      () => {} // IMPORTANT: empty callback → prevents auto scanning behavior
+    );
+
   });
 
 }
 
-// Init camera once
-Html5Qrcode.getCameras().then(devices => {
+// scan ONLY when button pressed
+async function scanOnce() {
 
-  if (!devices || devices.length === 0) {
-    alert("No camera found");
-    return;
+  if (isRunning) return;
+  isRunning = true;
+
+  try {
+
+    const result = await scanner.scanFile(null, true);
+
+    // fallback not needed in most cases
+    console.log("SCAN RESULT:", result);
+
+  } catch (err) {
+
+    console.log("Switching to live scan mode...");
+
+    // If scanFile not supported, use controlled live scan ONCE
+    scanner.render(
+      (decodedText) => {
+
+        console.log("QR:", decodedText);
+        sendToSheet(decodedText);
+
+        scanner.stop(); // STOP immediately → no duplicates
+        isRunning = false;
+
+      },
+      {
+        fps: 10,
+        qrbox: 250
+      }
+    );
+
   }
 
-  cameraId = devices[0].id;
+}
 
-  // prefer back camera
-  for (let d of devices) {
-    const name = d.label.toLowerCase();
-    if (name.includes("back") || name.includes("rear")) {
-      cameraId = d.id;
-      break;
-    }
-  }
-
-  console.log("Camera ready");
-
-}).catch(err => {
-  console.error(err);
-  alert("Camera permission denied or not available");
+// button event
+document.getElementById("scanBtn").addEventListener("click", () => {
+  scanOnce();
 });
+
+// init camera preview
+startCamera();
 
 </script>
 
