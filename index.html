@@ -11,6 +11,7 @@
     text-align: center;
     margin-top: 20px;
   }
+
   #reader {
     width: 300px;
     margin: auto;
@@ -28,15 +29,34 @@ const API_URL = "https://script.google.com/macros/s/AKfycbw4ZtbLqpovkXsFPH5pSLI3
 
 const scanner = new Html5Qrcode("reader");
 
+// ===== DUPLICATE CONTROL =====
+let scanningEnabled = true;
+let lastScannedText = "";
+
+// Send to Google Sheets
 function sendToSheet(qr) {
   fetch(API_URL + "?qr=" + encodeURIComponent(qr))
     .then(() => console.log("Saved:", qr))
     .catch(err => console.error("Fetch error:", err));
 }
 
+// QR scan handler (ANTI-DUPLICATE LOGIC)
 function onScanSuccess(decodedText) {
+  if (!scanningEnabled) return;
+
+  // block same scan spam
+  if (decodedText === lastScannedText) return;
+
+  lastScannedText = decodedText;
+  scanningEnabled = false;
+
   console.log("QR detected:", decodedText);
   sendToSheet(decodedText);
+
+  // re-enable scanning after 3 seconds
+  setTimeout(() => {
+    scanningEnabled = true;
+  }, 3000);
 }
 
 // Start camera
@@ -48,7 +68,7 @@ Html5Qrcode.getCameras().then(devices => {
 
   let cameraId = devices[0].id;
 
-  // Try to find back camera
+  // Prefer back camera
   for (let device of devices) {
     const label = device.label.toLowerCase();
     if (label.includes("back") || label.includes("rear") || label.includes("environment")) {
@@ -67,24 +87,13 @@ Html5Qrcode.getCameras().then(devices => {
         useBarCodeDetectorIfSupported: true
       }
     },
-    
-let lastScan = "";
-let lastScanTime = 0;
-
-function onScanSuccess(decodedText) {
-  const now = Date.now();
-
-  // ignore same scan within 3 seconds
-  if (decodedText === lastScan && (now - lastScanTime) < 3000) {
-    return;
-  }
-
-  lastScan = decodedText;
-  lastScanTime = now;
-
-  console.log("QR detected:", decodedText);
-  sendToSheet(decodedText);
-}
+    onScanSuccess
+  )
+  .then(() => console.log("Camera started"))
+  .catch(err => {
+    console.error("Camera error:", err);
+    alert("Camera failed: " + err);
+  });
 
 }).catch(err => {
   console.error("getCameras error:", err);
