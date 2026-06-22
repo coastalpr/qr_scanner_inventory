@@ -142,32 +142,44 @@ function sendToSheet(qr) {
 
 }
 
+// start camera + continuous detection (NO SAVE AUTOMATICALLY)
 function startCamera() {
 
   Html5Qrcode.getCameras().then(devices => {
 
-    if (!devices.length) {
+    if (!devices || devices.length === 0) {
       alert("No camera found");
       return;
     }
 
     cameraId = devices[0].id;
 
-    // prefer rear camera
     for (let d of devices) {
-      if (d.label.toLowerCase().includes("back")) {
+      const name = d.label.toLowerCase();
+      if (name.includes("back") || name.includes("rear")) {
         cameraId = d.id;
+        break;
       }
     }
 
     scanner.start(
       cameraId,
-      { fps: 10, qrbox: 250 },
+      {
+        fps: 10,
+        qrbox: 250
+      },
       (decodedText) => {
+
+        // store latest QR only
         lastQR = decodedText;
-        setStatus("📷 Scanned: " + decodedText + " (ready to save)");
+
+        setStatus("QR Detected: " + decodedText + " (Press Save)");
+
       }
-    );
+    ).catch(err => {
+      console.error(err);
+      alert("Camera error: " + err);
+    });
 
   });
 
