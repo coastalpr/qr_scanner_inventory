@@ -40,10 +40,12 @@ const API_URL = "https://script.google.com/macros/s/AKfycbw4ZtbLqpovkXsFPH5pSLI3
 const scanner = new Html5Qrcode("reader");
 
 let cameraId = null;
-let isRunning = false;
+let scanning = false;
 
-// send to sheet
+// send to Google Sheet
 function sendToSheet(qr) {
+
+  console.log("Sending to sheet:", qr);
 
   fetch(API_URL + "?qr=" + encodeURIComponent(qr))
     .then(res => res.text())
@@ -52,7 +54,7 @@ function sendToSheet(qr) {
 
 }
 
-// start camera ONCE (preview only, no scanning loop)
+// start camera preview
 function startCamera() {
 
   Html5Qrcode.getCameras().then(devices => {
@@ -64,73 +66,63 @@ function startCamera() {
 
     cameraId = devices[0].id;
 
-    // prefer back camera
     for (let d of devices) {
-      const label = d.label.toLowerCase();
-      if (label.includes("back") || label.includes("rear")) {
+      const name = d.label.toLowerCase();
+      if (name.includes("back") || name.includes("rear")) {
         cameraId = d.id;
         break;
       }
     }
 
-    // start camera preview ONLY (no scanning yet)
     scanner.start(
       cameraId,
       {
         fps: 10,
         qrbox: 250
       },
-      () => {} // IMPORTANT: empty callback → prevents auto scanning behavior
-    );
+      () => {}
+    ).then(() => {
+      console.log("Camera started");
+    }).catch(err => {
+      console.error("Camera error:", err);
+      alert(err);
+    });
 
   });
 
 }
 
-// scan ONLY when button pressed
-async function scanOnce() {
+// ONE SCAN ONLY
+function scanOnce() {
 
-  if (isRunning) return;
-  isRunning = true;
+  if (scanning) return;
+  scanning = true;
 
-  try {
+  scanner.render(
+    (decodedText) => {
 
-    const result = await scanner.scanFile(null, true);
+      console.log("QR detected:", decodedText);
 
-    // fallback not needed in most cases
-    console.log("SCAN RESULT:", result);
+      sendToSheet(decodedText);
 
-  } catch (err) {
+      scanner.stop().then(() => {
+        console.log("Scanner stopped");
+        scanning = false;
+      });
 
-    console.log("Switching to live scan mode...");
-
-    // If scanFile not supported, use controlled live scan ONCE
-    scanner.render(
-      (decodedText) => {
-
-        console.log("QR:", decodedText);
-        sendToSheet(decodedText);
-
-        scanner.stop(); // STOP immediately → no duplicates
-        isRunning = false;
-
-      },
-      {
-        fps: 10,
-        qrbox: 250
-      }
-    );
-
-  }
+    },
+    {
+      fps: 10,
+      qrbox: 250
+    }
+  );
 
 }
 
-// button event
-document.getElementById("scanBtn").addEventListener("click", () => {
-  scanOnce();
-});
+// button
+document.getElementById("scanBtn").addEventListener("click", scanOnce);
 
-// init camera preview
+// init
 startCamera();
 
 </script>
