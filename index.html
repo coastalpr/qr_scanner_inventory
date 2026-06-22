@@ -54,8 +54,21 @@ function sendToSheet(qr) {
 
   fetch(API_URL + "?qr=" + encodeURIComponent(qr))
     .then(res => res.text())
-    .then(data => console.log("Saved:", data))
-    .catch(err => console.error("Error:", err));
+    .then(response => {
+
+      if (response === "DUPLICATE") {
+        alert("⚠ QR already exists in spreadsheet!");
+        console.log("Duplicate QR blocked");
+      } 
+      else if (response === "OK") {
+        alert("Saved successfully!");
+        console.log("Saved:", qr);
+      }
+
+    })
+    .catch(err => {
+      console.error("Error:", err);
+    });
 
 }
 
