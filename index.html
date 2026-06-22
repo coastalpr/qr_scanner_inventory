@@ -52,29 +52,21 @@ let lastQR = null;
 // send to sheet
 function sendToSheet(qr) {
 
-  fetch(API_URL + "?qr=" + encodeURIComponent(qr))
-    .then(res => res.text())
-    .then(result => {
+fetch(API_URL + "?qr=" + encodeURIComponent(qr))
+.then(r => r.text())
+.then(answer => {
 
-      console.log("SERVER RESPONSE:", result);
+console.log("SERVER:", answer);
 
-      if (result.trim() === "DUPLICATE") {
-        alert("⚠ Already exists in spreadsheet");
-        return;
-      }
+if (answer.trim() === "DUPLICATE") {
+    alert("⚠ Already scanned!");
+}
 
-      if (result.trim() === "SAVED") {
-        alert("✅ Saved successfully");
-        return;
-      }
+if (answer.trim() === "SAVED") {
+    alert("✅ Saved");
+}
 
-      alert("Unexpected response: " + result);
-
-    })
-    .catch(err => {
-      console.error(err);
-      alert("Connection failed");
-    });
+});
 
 }
 
