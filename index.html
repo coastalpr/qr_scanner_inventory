@@ -41,20 +41,26 @@ Html5Qrcode.getCameras().then(devices => {
   const cameraId = backCameraId || devices[0].id;
 
   const scanner = new Html5Qrcode("reader");
+  
+const track = await scanner.getRunningTrack();
+const capabilities = track.getCapabilities?.();
 
-  scanner.start(
-    cameraId,
-    {
-      fps: 10,
-      qrbox: 250
-    },
-    (decodedText) => {
-      sendToSheet(decodedText); // ✅ THIS is the important fix
-    },
-    (errorMessage) => {
-      // ignore scan errors (normal while moving camera)
-    }
-  );
+if (capabilities?.focusMode) {
+  track.applyConstraints({
+    advanced: [{ focusMode: "continuous" }]
+  });
+}
+scanner.start(
+  cameraId,
+  {
+    fps: 20, // faster scanning
+    qrbox: { width: 280, height: 280 }, // better precision
+    aspectRatio: 1.0
+  },
+  (decodedText) => {
+    sendToSheet(decodedText);
+  }
+);
 
 });
 </script>
