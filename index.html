@@ -147,20 +147,20 @@ function startCamera() {
 
   Html5Qrcode.getCameras().then(devices => {
 
-    if (!devices || devices.length === 0) {
+    if (!devices.length) {
       alert("No camera found");
       return;
     }
 
     cameraId = devices[0].id;
 
+    // prefer rear camera
     for (let d of devices) {
-      const name = d.label.toLowerCase();
-      if (name.includes("back") || name.includes("rear")) {
+      if (d.label.toLowerCase().includes("back")) {
         cameraId = d.id;
-        break;
       }
     }
+
 
     scanner.start(
       cameraId,
