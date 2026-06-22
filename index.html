@@ -67,13 +67,24 @@ Html5Qrcode.getCameras().then(devices => {
         useBarCodeDetectorIfSupported: true
       }
     },
-    onScanSuccess
-  ).then(() => {
-    console.log("Camera started");
-  }).catch(err => {
-    console.error("Camera error:", err);
-    alert("Camera failed: " + err);
-  });
+    
+let lastScan = "";
+let lastScanTime = 0;
+
+function onScanSuccess(decodedText) {
+  const now = Date.now();
+
+  // ignore same scan within 3 seconds
+  if (decodedText === lastScan && (now - lastScanTime) < 3000) {
+    return;
+  }
+
+  lastScan = decodedText;
+  lastScanTime = now;
+
+  console.log("QR detected:", decodedText);
+  sendToSheet(decodedText);
+}
 
 }).catch(err => {
   console.error("getCameras error:", err);
