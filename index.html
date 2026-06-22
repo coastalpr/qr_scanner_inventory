@@ -32,11 +32,11 @@
 
 <body>
 
-<h3>QR Scanner</h3>
+<h3>CARICOOS Inventory QR SCANNER</h3>
 
 <div id="reader"></div>
 
-<button id="saveBtn">Save QR</button>
+<button id="saveBtn">Save QR Code</button>
 
 <div id="status">No QR detected yet</div>
 
@@ -95,7 +95,7 @@ function startCamera() {
         // store latest QR only
         lastQR = decodedText;
 
-        setStatus("QR detected: " + decodedText + " (Press Save)");
+        setStatus("QR Detected: " + decodedText + " (Press Save)");
 
       }
     ).catch(err => {
