@@ -44,9 +44,12 @@ let isRunning = false;
 
 // send to sheet
 function sendToSheet(qr) {
+
   fetch(API_URL + "?qr=" + encodeURIComponent(qr))
-    .then(() => console.log("Saved:", qr))
-    .catch(err => console.error(err));
+    .then(res => res.text())
+    .then(data => console.log("Sheet response:", data))
+    .catch(err => console.error("Fetch error:", err));
+
 }
 
 // start camera ONCE (preview only, no scanning loop)
