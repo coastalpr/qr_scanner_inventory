@@ -48,8 +48,11 @@ scanner.start(
   { facingMode: "environment" },
   {
     fps: 10,
-    qrbox: { width: 250, height: 250 },
+    qrbox: { width: 180, height: 180 },  // 🔥 smaller scan box = closer scanning
     aspectRatio: 1.0
+     experimentalFeatures: {
+    useBarCodeDetectorIfSupported: true
+  }
   },
   (decodedText) => {
     sendToSheet(decodedText);
