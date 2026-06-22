@@ -51,22 +51,23 @@ let lastQR = null;
 
 // send to sheet
 function sendToSheet(qr) {
+  fetch(API_URL + "?qr=" + encodeURIComponent(qr))
+  .then(response => response.text())
+  .then(result => {
+      result = result.trim();
+      console.log("GOOGLE SAID:", result);
 
-fetch(API_URL + "?qr=" + encodeURIComponent(qr))
-.then(r => r.text())
-.then(answer => {
+      if (result === "DUPLICATE") {
+        alert("⚠ QR already exists!");
+      } 
+      else if (result === "SAVED") {
+        alert("✅ Saved!");
+      }
+      else {
+        alert("Google returned: " + result);
+      }
 
-console.log("SERVER:", answer);
-
-if (answer.trim() === "DUPLICATE") {
-    alert("⚠ Already scanned!");
-}
-
-if (answer.trim() === "SAVED") {
-    alert("✅ Saved");
-}
-
-});
+  });
 
 }
 
