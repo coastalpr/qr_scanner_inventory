@@ -51,27 +51,29 @@ let lastQR = null;
 
 // send to sheet
 function sendToSheet(qr) {
+
   fetch(API_URL + "?qr=" + encodeURIComponent(qr))
-    .then(response => response.text())
+    .then(res => res.text())
     .then(result => {
-      console.log("Server:", result);
 
-      if (result === "DUPLICATE") {
-        alert("⚠ This QR code already exists!");
-      } 
-      else if (result === "SAVED") {
+      console.log("SERVER RESPONSE:", result);
 
-        alert("✅ QR saved!");
-
+      if (result.trim() === "DUPLICATE") {
+        alert("⚠ Already exists in spreadsheet");
+        return;
       }
-      else {
-        alert("Problem: " + result);
+
+      if (result.trim() === "SAVED") {
+        alert("✅ Saved successfully");
+        return;
       }
+
+      alert("Unexpected response: " + result);
 
     })
-    .catch(error => {
-      alert("Connection error");
-      console.log(error);
+    .catch(err => {
+      console.error(err);
+      alert("Connection failed");
     });
 
 }
