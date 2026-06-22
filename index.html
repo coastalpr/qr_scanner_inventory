@@ -1,35 +1,17 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <script src="https://unpkg.com/html5-qrcode"></script>
-  <style>
-    body { font-family: Arial; text-align:center; margin-top:20px; }
-    #reader { width: 300px; margin:auto; }
-  </style>
-</head>
-<body>
-
-<h3>QR Scanner</h3>
-<div id="reader"></div>
-
-<script>
 const API_URL = "https://script.google.com/macros/s/AKfycbw4ZtbLqpovkXsFPH5pSLI3Bx00UusqfXA4TXV5F3Jnu5AxHxf9f1zUYZ3BGm2JPMfO/exec";
 
 function sendToSheet(qr) {
+  console.log("Sending:", qr);
+
   fetch(API_URL + "?qr=" + encodeURIComponent(qr))
     .then(() => console.log("Saved:", qr))
-    .catch(err => console.error(err));
-}
-
-function onScanSuccess(decodedText) {
-  sendToSheet(decodedText);
+    .catch(err => console.error("Error:", err));
 }
 
 Html5Qrcode.getCameras().then(devices => {
+
   let backCameraId = null;
 
-  // find back camera
   devices.forEach(device => {
     if (
       device.label.toLowerCase().includes("back") ||
@@ -51,11 +33,11 @@ Html5Qrcode.getCameras().then(devices => {
       qrbox: 250
     },
     (decodedText) => {
-      fetch(API_URL + "?qr=" + encodeURIComponent(decodedText));
+      sendToSheet(decodedText); // ✅ THIS is the important fix
+    },
+    (errorMessage) => {
+      // ignore scan errors (normal while moving camera)
     }
   );
-});
-</script>
 
-</body>
-</html>
+});
