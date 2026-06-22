@@ -6,99 +6,151 @@
 <script src="https://unpkg.com/html5-qrcode"></script>
 
 <style>
-  body {
-    font-family: Arial;
-    text-align: center;
-    margin-top: 20px;
-  }
+body {
+  font-family: Arial;
+  text-align:center;
+  margin-top:20px;
+}
 
-  #reader {
-    width: 300px;
-    margin: auto;
-  }
+#reader {
+  width:300px;
+  margin:auto;
+}
 </style>
+
 </head>
 
 <body>
 
 <h3>QR Scanner</h3>
+
 <div id="reader"></div>
 
 <script>
+
 const API_URL = "https://script.google.com/macros/s/AKfycbw4ZtbLqpovkXsFPH5pSLI3Bx00UusqfXA4TXV5F3Jnu5AxHxf9f1zUYZ3BGm2JPMfO/exec";
+
+
+function sendToSheet(qr) {
+
+  fetch(API_URL + "?qr=" + encodeURIComponent(qr))
+  .then(() => {
+    console.log("Saved:", qr);
+  })
+  .catch(err => {
+    console.log("Error:", err);
+  });
+
+}
+
+
+// duplicate protection
+let lastQR = "";
+let locked = false;
+
+
+function onScanSuccess(text) {
+
+  if (locked) return;
+
+  if (text === lastQR) return;
+
+
+  lastQR = text;
+  locked = true;
+
+
+  console.log("SCAN:", text);
+
+  sendToSheet(text);
+
+
+  setTimeout(() => {
+    locked = false;
+  }, 3000);
+
+}
+
+
 
 const scanner = new Html5Qrcode("reader");
 
-// ===== DUPLICATE CONTROL =====
-let scanningEnabled = true;
-let lastScannedText = "";
 
-// Send to Google Sheets
-function sendToSheet(qr) {
-  fetch(API_URL + "?qr=" + encodeURIComponent(qr))
-    .then(() => console.log("Saved:", qr))
-    .catch(err => console.error("Fetch error:", err));
-}
 
-// QR scan handler (ANTI-DUPLICATE LOGIC)
-function onScanSuccess(decodedText) {
-  if (!scanningEnabled) return;
+Html5Qrcode.getCameras()
+.then(cameras => {
 
-  // block same scan spam
-  if (decodedText === lastScannedText) return;
 
-  lastScannedText = decodedText;
-  scanningEnabled = false;
+  if (cameras.length === 0) {
 
-  console.log("QR detected:", decodedText);
-  sendToSheet(decodedText);
-
-  // re-enable scanning after 3 seconds
-  setTimeout(() => {
-    scanningEnabled = true;
-  }, 3000);
-}
-
-// Start camera
-Html5Qrcode.getCameras().then(devices => {
-  if (!devices || devices.length === 0) {
-    alert("No camera found");
+    alert("No camera detected");
     return;
+
   }
 
-  let cameraId = devices[0].id;
 
-  // Prefer back camera
-  for (let device of devices) {
-    const label = device.label.toLowerCase();
-    if (label.includes("back") || label.includes("rear") || label.includes("environment")) {
-      cameraId = device.id;
+  let cameraId = cameras[0].id;
+
+
+  // choose rear camera if available
+  for (let cam of cameras) {
+
+    let name = cam.label.toLowerCase();
+
+    if (
+      name.includes("back") ||
+      name.includes("rear") ||
+      name.includes("environment")
+    ) {
+      cameraId = cam.id;
       break;
     }
+
   }
 
+
+
   scanner.start(
+
     cameraId,
+
     {
       fps: 10,
-      qrbox: { width: 200, height: 200 },
-      aspectRatio: 1.0,
-      experimentalFeatures: {
-        useBarCodeDetectorIfSupported: true
-      }
+      qrbox: 200
     },
+
     onScanSuccess
+
   )
-  .then(() => console.log("Camera started"))
+
+  .then(() => {
+
+    console.log("Camera active");
+
+  })
+
   .catch(err => {
-    console.error("Camera error:", err);
+
+    console.log(err);
     alert("Camera failed: " + err);
+
   });
 
-}).catch(err => {
-  console.error("getCameras error:", err);
-  alert("Cannot access camera");
+
+
+})
+
+
+.catch(err => {
+
+  alert("Camera permission denied or unavailable");
+
+  console.log(err);
+
 });
+
+
+
 </script>
 
 </body>
