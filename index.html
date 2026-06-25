@@ -167,8 +167,8 @@ async function startCamera() {
 
         // Smaller scan area helps with small QR stickers
         qrbox: {
-          width: 180,
-          height: 180
+          width: 350,
+          height: 350
         },
 
         aspectRatio: 1.777,
@@ -183,43 +183,30 @@ async function startCamera() {
     );
 
     // Try zooming in slightly on supported devices
-    try {
-
-      const track = scanner.getRunningTrack();
-
-      if (!track) return;
-
-      const caps = track.getCapabilities();
-
-      console.log("Camera capabilities:", caps);
-
-      if (caps.zoom) {
-
-        const zoomLevel = Math.min(
-          2,
-          caps.zoom.max || 2
-        );
-
-        await track.applyConstraints({
-          advanced: [
-            { zoom: zoomLevel }
-          ]
-        });
-
-        console.log("Zoom enabled:", zoomLevel);
-
-      }
-
-    } catch (zoomErr) {
-      console.log("Zoom not supported", zoomErr);
+  try {
+  
+    const track = scanner.getRunningTrack();
+    const caps = track.getCapabilities();
+  
+    if (caps.zoom) {
+  
+      const zoom = Math.min(
+        3,
+        caps.zoom.max
+      );
+  
+      await track.applyConstraints({
+        advanced: [
+          { zoom: zoom }
+        ]
+      });
+  
+      console.log("Using zoom:", zoom);
     }
-
-  } catch (err) {
-    console.error(err);
-    alert("Camera error: " + err);
+  
+  } catch(e) {
+    console.log("Zoom unavailable", e);
   }
-
-}
 
 document.getElementById("saveBtn").addEventListener("click", () => {
 
