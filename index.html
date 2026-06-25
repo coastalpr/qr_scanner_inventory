@@ -116,7 +116,6 @@ const API_URL = "https://script.google.com/macros/s/AKfycbx6ZavxOniEWos1BmdlcSg3
 
 const scanner = new Html5Qrcode("reader");
 
-let cameraId = null;
 let lastQR = null;
 
 function setStatus(msg) {
@@ -129,9 +128,10 @@ function sendToSheet(qr) {
     .then(res => res.text())
     .then(result => {
 
-      setStatus(result === "DUPLICATE"
-        ? "⚠ Already exists in system"
-        : "✅ Saved successfully"
+      setStatus(
+        result === "DUPLICATE"
+          ? "⚠ Already exists in system"
+          : "✅ Saved successfully"
       );
 
     })
@@ -142,46 +142,82 @@ function sendToSheet(qr) {
 
 }
 
-// start camera + continuous detection (NO SAVE AUTOMATICALLY)
-function startCamera() {
+function onScanSuccess(decodedText) {
 
-  Html5Qrcode.getCameras().then(devices => {
+  if (decodedText === lastQR) return;
 
-    if (!devices.length) {
-      alert("No camera found");
-      return;
-    }
+  lastQR = decodedText;
 
-    cameraId = devices[0].id;
+  setStatus(
+    "QR Detected: " + decodedText + " (Press Save)"
+  );
 
-    // prefer rear camera
-    for (let d of devices) {
-      if (d.label.toLowerCase().includes("back")) {
-        cameraId = d.id;
-      }
-    }
+}
 
+async function startCamera() {
 
-    scanner.start(
-      cameraId,
+  try {
+
+    await scanner.start(
       {
-        fps: 20,
-        qrbox: 350
+        facingMode: "environment"
       },
-      (decodedText) => {
+      {
+        fps: 15,
 
-        // store latest QR only
-        lastQR = decodedText;
+        // Smaller scan area helps with small QR stickers
+        qrbox: {
+          width: 180,
+          height: 180
+        },
 
-        setStatus("QR Detected: " + decodedText + " (Press Save)");
+        aspectRatio: 1.777,
+
+        videoConstraints: {
+          facingMode: "environment",
+          width: { ideal: 1920 },
+          height: { ideal: 1080 }
+        }
+      },
+      onScanSuccess
+    );
+
+    // Try zooming in slightly on supported devices
+    try {
+
+      const track = scanner.getRunningTrack();
+
+      if (!track) return;
+
+      const caps = track.getCapabilities();
+
+      console.log("Camera capabilities:", caps);
+
+      if (caps.zoom) {
+
+        const zoomLevel = Math.min(
+          2,
+          caps.zoom.max || 2
+        );
+
+        await track.applyConstraints({
+          advanced: [
+            { zoom: zoomLevel }
+          ]
+        });
+
+        console.log("Zoom enabled:", zoomLevel);
 
       }
-    ).catch(err => {
-      console.error(err);
-      alert("Camera error: " + err);
-    });
 
-  });
+    } catch (zoomErr) {
+      console.log("Zoom not supported", zoomErr);
+    }
+
+  } catch (err) {
+    console.error(err);
+    alert("Camera error: " + err);
+  }
 
 }
 
@@ -192,8 +228,9 @@ document.getElementById("saveBtn").addEventListener("click", () => {
     return;
   }
 
-  sendToSheet(lastQR);
   setStatus("⏳ Saving: " + lastQR);
+
+  sendToSheet(lastQR);
 
   lastQR = null;
 
