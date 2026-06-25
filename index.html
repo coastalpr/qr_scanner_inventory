@@ -48,7 +48,8 @@
 
   /* QR READER BOX */
   #reader {
-    width: 100%;  
+    width: 100%;
+    height: 45vh;
     margin-top: 18px;
     border-radius: 12px;
     overflow: hidden;
@@ -182,32 +183,50 @@ async function startCamera() {
       onScanSuccess
     );
 
-    // Try zooming in slightly on supported devices
-  try {
-  
-    const track = scanner.getRunningTrack();
+   // Try zooming in slightly on supported devices
+try {
+
+  const track = scanner.getRunningTrack();
+
+  if (track && track.getCapabilities) {
+
     const caps = track.getCapabilities();
-  
+
+    console.log("Camera capabilities:", caps);
+
     if (caps.zoom) {
-  
+
       const zoom = Math.min(
-        3,
+        2,
         caps.zoom.max
       );
-  
+
       await track.applyConstraints({
         advanced: [
           { zoom: zoom }
         ]
       });
-  
+
       console.log("Using zoom:", zoom);
+
     }
-  
-  } catch(e) {
-    console.log("Zoom unavailable", e);
   }
 
+} catch(e) {
+  console.log("Zoom unavailable", e);
+}
+
+}
+
+catch(err) {
+
+  console.error(err);
+  alert("Camera error: " + err);
+}
+
+}
+  
+// SAVE BUTTON
 document.getElementById("saveBtn").addEventListener("click", () => {
 
   if (!lastQR) {
@@ -223,6 +242,8 @@ document.getElementById("saveBtn").addEventListener("click", () => {
 
 });
 
+
+// START
 startCamera();
 
 </script>
