@@ -116,7 +116,6 @@ const API_URL = "https://script.google.com/macros/s/AKfycbx6ZavxOniEWos1BmdlcSg3
 
 const scanner = new Html5Qrcode("reader");
 
-let cameraId = null;
 let lastQR = null;
 
 function setStatus(msg) {
@@ -129,9 +128,10 @@ function sendToSheet(qr) {
     .then(res => res.text())
     .then(result => {
 
-      setStatus(result === "DUPLICATE"
-        ? "⚠ Already exists in system"
-        : "✅ Saved successfully"
+      setStatus(
+        result === "DUPLICATE"
+          ? "⚠ Already exists in system"
+          : "✅ Saved successfully"
       );
 
     })
@@ -142,27 +142,19 @@ function sendToSheet(qr) {
 
 }
 
-// start camera + continuous detection (NO SAVE AUTOMATICALLY)
+function onScanSuccess(decodedText) {
+
+  lastQR = decodedText;
+
+  setStatus(
+    "QR Detected: " + decodedText + " (Press Save)"
+  );
+
+}
+
 function startCamera() {
 
-  Html5Qrcode.getCameras().then(devices => {
-
-    if (!devices.length) {
-      alert("No camera found");
-      return;
-    }
-
-    cameraId = devices[0].id;
-
-    // prefer rear camera
-    for (let d of devices) {
-      if (d.label.toLowerCase().includes("back")) {
-        cameraId = d.id;
-      }
-    }
-
-
-      scanner.start(
+  scanner.start(
     { facingMode: "environment" },
     {
       fps: 10,
@@ -173,16 +165,45 @@ function startCamera() {
         height: { ideal: 1080 }
       }
     },
-    (decodedText) => {
+    onScanSuccess
+  )
+  .then(() => {
 
-      lastQR = decodedText;
+    try {
 
-      setStatus(
-        "QR Detected: " + decodedText + " (Press Save)"
-      );
+      const track = scanner.getRunningTrack();
 
+      if (!track || !track.getCapabilities) {
+        console.log("Focus controls not supported");
+        return;
+      }
+
+      const caps = track.getCapabilities();
+
+      console.log("Camera capabilities:", caps);
+
+      if (caps.focusMode) {
+
+        track.applyConstraints({
+          advanced: [
+            { focusMode: "continuous" }
+          ]
+        })
+        .then(() => {
+          console.log("Continuous autofocus enabled");
+        })
+        .catch(err => {
+          console.log("Could not enable autofocus:", err);
+        });
+
+      }
+
+    } catch (err) {
+      console.log("Focus setup error:", err);
     }
-  ).catch(err => {
+
+  })
+  .catch(err => {
     console.error(err);
     alert("Camera error: " + err);
   });
@@ -196,8 +217,9 @@ document.getElementById("saveBtn").addEventListener("click", () => {
     return;
   }
 
-  sendToSheet(lastQR);
   setStatus("⏳ Saving: " + lastQR);
+
+  sendToSheet(lastQR);
 
   lastQR = null;
 
