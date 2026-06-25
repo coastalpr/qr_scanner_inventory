@@ -162,25 +162,29 @@ function startCamera() {
     }
 
 
-    scanner.start(
-      cameraId,
-      {
-        fps: 10,
-        qrbox: 350
-      },
-      (decodedText) => {
-
-        // store latest QR only
-        lastQR = decodedText;
-
-        setStatus("QR Detected: " + decodedText + " (Press Save)");
-
+      scanner.start(
+    { facingMode: "environment" },
+    {
+      fps: 10,
+      qrbox: 250,
+      aspectRatio: 1.7778,
+      videoConstraints: {
+        width: { ideal: 1920 },
+        height: { ideal: 1080 }
       }
-    ).catch(err => {
-      console.error(err);
-      alert("Camera error: " + err);
-    });
+    },
+    (decodedText) => {
 
+      lastQR = decodedText;
+
+      setStatus(
+        "QR Detected: " + decodedText + " (Press Save)"
+      );
+
+    }
+  ).catch(err => {
+    console.error(err);
+    alert("Camera error: " + err);
   });
 
 }
